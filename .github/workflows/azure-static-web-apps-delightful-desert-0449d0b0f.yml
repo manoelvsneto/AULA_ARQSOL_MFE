@@ -37,17 +37,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      # ── 1. Build mfe-cadastro ────────────────────────────────────────────────
-      - name: Build mfe-cadastro
+      # ── 1 + 2. Build MFEs em paralelo (economiza ~40-60s) ────────────────────
+      - name: Build mfe-cadastro e mfe-leilao (paralelo)
         run: |
-          npm ci --prefer-offline --prefix mfe-cadastro
-          npm run build --prefix mfe-cadastro
-
-      # ── 2. Build mfe-leilao ──────────────────────────────────────────────────
-      - name: Build mfe-leilao
-        run: |
-          npm ci --prefer-offline --prefix mfe-leilao
-          npm run build --prefix mfe-leilao
+          (npm ci --prefer-offline --no-audit --no-fund --prefix mfe-cadastro && npm run build --prefix mfe-cadastro) &
+          PID_CADASTRO=$!
+          (npm ci --prefer-offline --no-audit --no-fund --prefix mfe-leilao  && npm run build --prefix mfe-leilao)  &
+          PID_LEILAO=$!
+          wait $PID_CADASTRO || { echo "mfe-cadastro falhou"; exit 1; }
+          wait $PID_LEILAO   || { echo "mfe-leilao falhou";   exit 1; }
 
       # ── 3. Copiar APENAS arquivos de federação (sem shared singletons) ────────
       #    __federation_shared_* NÃO são copiados: o Shell os fornece em runtime
@@ -70,7 +68,7 @@ jobs:
       # ── 4. Build shell (production mode → URLs relativas dos MFEs) ───────────
       - name: Build shell
         run: |
-          npm ci --prefer-offline --prefix shell
+          npm ci --prefer-offline --no-audit --no-fund --prefix shell
           npm run build --prefix shell
 
       # ── 5. Deploy shell/dist → Azure Static Web Apps ─────────────────────────
