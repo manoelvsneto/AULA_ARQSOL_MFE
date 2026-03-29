@@ -72,15 +72,18 @@ jobs:
           npm run build --prefix shell
 
       # ── 5. Deploy shell/dist → Azure Static Web Apps ─────────────────────────
+      # app_location aponta DIRETO para os artefatos buildados (shell/dist),
+      # evitando que o container varra node_modules ou outros arquivos grandes.
       - name: Deploy to Azure Static Web Apps
         id: builddeploy
+        timeout-minutes: 15
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_DELIGHTFUL_DESERT_0449D0B0F }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          app_location: "./shell"
-          output_location: "dist"
+          app_location: "shell/dist"
+          output_location: ""
           skip_app_build: true
 
   close_pull_request_job:
