@@ -4,7 +4,7 @@
 
 - **Disciplina:** Arquitetura de Soluções
 - **Tema:** Microfrontends com Module Federation
-- **Nível:** Graduação / Pós-Graduação em Engenharia de Software
+- **Nível:** Graduação em Engenharia de Software
 
 ---
 
