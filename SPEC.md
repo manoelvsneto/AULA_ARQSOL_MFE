@@ -119,7 +119,7 @@ Shell (vite.config.js)          MFE Remote (vite.config.js)
 
 ---
 
-## 📦 Dependências Chave
+## 📦 Dependências Chave .
 
 | Pacote | Versão | Propósito |
 |--------|--------|-----------|
