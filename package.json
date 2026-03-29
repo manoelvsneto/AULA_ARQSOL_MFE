@@ -1,0 +1,14 @@
+{
+  "name": "autoleilao-mfe",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Plataforma de leilão de veículos com arquitetura Microfrontend (Module Federation)",
+  "scripts": {
+    "install:all": "npm install && npm install --prefix shell && npm install --prefix mfe-cadastro && npm install --prefix mfe-leilao",
+    "build:remotes": "npm run build --prefix mfe-cadastro && npm run build --prefix mfe-leilao",
+    "start": "concurrently -n \"MFE-Cadastro,MFE-Leilao,Shell\" -c \"blue,yellow,green\" \"npm run preview --prefix mfe-cadastro\" \"npm run preview --prefix mfe-leilao\" \"npm run dev --prefix shell\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
