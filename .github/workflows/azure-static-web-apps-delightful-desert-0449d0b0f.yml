@@ -25,33 +25,55 @@ jobs:
         with:
           node-version: '20'
 
+      # ── Cache node_modules (acelera builds subsequentes) ─────────────────────
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            mfe-cadastro/node_modules
+            mfe-leilao/node_modules
+            shell/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('mfe-cadastro/package-lock.json','mfe-leilao/package-lock.json','shell/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
       # ── 1. Build mfe-cadastro ────────────────────────────────────────────────
       - name: Build mfe-cadastro
         run: |
-          npm ci --prefix mfe-cadastro
+          npm ci --prefer-offline --prefix mfe-cadastro
           npm run build --prefix mfe-cadastro
 
       # ── 2. Build mfe-leilao ──────────────────────────────────────────────────
       - name: Build mfe-leilao
         run: |
-          npm ci --prefix mfe-leilao
+          npm ci --prefer-offline --prefix mfe-leilao
           npm run build --prefix mfe-leilao
 
-      # ── 3. Embed MFE assets into shell/public so they are served together ────
-      - name: Copy MFE assets into shell/public
+      # ── 3. Copiar APENAS arquivos de federação (sem shared singletons) ────────
+      #    __federation_shared_* NÃO são copiados: o Shell os fornece em runtime
+      #    Isso elimina ~2MB de @mui/material duplicado do upload
+      - name: Copy MFE federation assets into shell/public
         run: |
-          mkdir -p shell/public/mfe-cadastro
-          cp -r mfe-cadastro/dist/assets shell/public/mfe-cadastro/
-          mkdir -p shell/public/mfe-leilao
-          cp -r mfe-leilao/dist/assets shell/public/mfe-leilao/
+          mkdir -p shell/public/mfe-cadastro/assets
+          find mfe-cadastro/dist/assets -maxdepth 1 -type f \
+            ! -name '__federation_shared_*' \
+            -exec cp {} shell/public/mfe-cadastro/assets/ \;
 
-      # ── 4. Build shell (production mode → uses relative MFE paths) ───────────
+          mkdir -p shell/public/mfe-leilao/assets
+          find mfe-leilao/dist/assets -maxdepth 1 -type f \
+            ! -name '__federation_shared_*' \
+            -exec cp {} shell/public/mfe-leilao/assets/ \;
+
+          echo "=== Arquivos copiados para shell/public ==="
+          find shell/public -type f | sort
+
+      # ── 4. Build shell (production mode → URLs relativas dos MFEs) ───────────
       - name: Build shell
         run: |
-          npm ci --prefix shell
+          npm ci --prefer-offline --prefix shell
           npm run build --prefix shell
 
-      # ── 5. Deploy shell/dist to Azure Static Web Apps ────────────────────────
+      # ── 5. Deploy shell/dist → Azure Static Web Apps ─────────────────────────
       - name: Deploy to Azure Static Web Apps
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
@@ -59,9 +81,9 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_DELIGHTFUL_DESERT_0449D0B0F }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          app_location: "./shell"      # pasta fonte do shell
-          output_location: "dist"      # Vite gera em shell/dist
-          skip_app_build: true         # build já foi feito no passo anterior
+          app_location: "./shell"
+          output_location: "dist"
+          skip_app_build: true
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
