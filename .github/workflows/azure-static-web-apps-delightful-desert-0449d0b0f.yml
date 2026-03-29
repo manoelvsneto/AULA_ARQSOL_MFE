@@ -19,19 +19,49 @@ jobs:
         with:
           submodules: true
           lfs: false
-      - name: Build And Deploy
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # ── 1. Build mfe-cadastro ────────────────────────────────────────────────
+      - name: Build mfe-cadastro
+        run: |
+          npm ci --prefix mfe-cadastro
+          npm run build --prefix mfe-cadastro
+
+      # ── 2. Build mfe-leilao ──────────────────────────────────────────────────
+      - name: Build mfe-leilao
+        run: |
+          npm ci --prefix mfe-leilao
+          npm run build --prefix mfe-leilao
+
+      # ── 3. Embed MFE assets into shell/public so they are served together ────
+      - name: Copy MFE assets into shell/public
+        run: |
+          mkdir -p shell/public/mfe-cadastro
+          cp -r mfe-cadastro/dist/assets shell/public/mfe-cadastro/
+          mkdir -p shell/public/mfe-leilao
+          cp -r mfe-leilao/dist/assets shell/public/mfe-leilao/
+
+      # ── 4. Build shell (production mode → uses relative MFE paths) ───────────
+      - name: Build shell
+        run: |
+          npm ci --prefix shell
+          npm run build --prefix shell
+
+      # ── 5. Deploy shell/dist to Azure Static Web Apps ────────────────────────
+      - name: Deploy to Azure Static Web Apps
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_DELIGHTFUL_DESERT_0449D0B0F }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
-          # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
-          app_location: "./mfe-cadastro" # App source code path
-          api_location: "" # Api source code path - optional
-          output_location: "dist" # Built app content directory - Vite outputs to dist/
-          ###### End of Repository/Build Configurations ######
+          app_location: "./shell"      # pasta fonte do shell
+          output_location: "dist"      # Vite gera em shell/dist
+          skip_app_build: true         # build já foi feito no passo anterior
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
